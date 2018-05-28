@@ -57,13 +57,15 @@ class ApiRos:
         self.sock = sock
         self.currenttag = 0
 
-    def login(self, username, password):
+    def login(self, username, password, send_plain_password=True):
         """
         Perform API login
 
         Args:
             username - Username used to login
             password - Password used to login
+            send_plain_password - Whether to send plaintext password (new-style)
+                                  without requiring MD5 CRAM
         """
 
         # RouterOS <= 6.43rc17 uses MD5 challenge-response:
@@ -77,9 +79,12 @@ class ApiRos:
         #   <-- {}
 
         # request login
-        _, attrs = self.talk(["/login",
-                              "=name=%s" % username,
-                              "=password=%s" % password])[0]
+        if send_plain_password:
+            _, attrs = self.talk(["/login",
+                                  "=name=%s" % username,
+                                  "=password=%s" % password])[0]
+        else:
+            _, attrs = self.talk(["/login"])[0]
 
         if "ret" in attrs:
             # Prepare response for challenge-response login

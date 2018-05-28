@@ -151,18 +151,23 @@ class TikapyBaseClient():
         self._connect_socket()
         self._sock = self._base_sock
 
-    def login(self, user, password):
+    def login(self, user, password, allow_insecure_auth_without_tls=False):
         """
         Connects to the API and tries to login the user.
 
         :param user: Username for API connections
         :param password: Password for API connections
+        :param allow_insecure_auth_without_tls: Allow plaintext authentication
+            against RouterOS 6.43+. This is false by default to avoid accidental
+            downgrade in security when the router is upgraded.
         :raises: ClientError - if login failed
         """
         self._connect()
         self._api = ApiRos(self._sock)
         try:
-            self._api.login(user, password)
+            socket_is_tls = hasattr(self._sock, "getpeercert")
+            send_plain_password = (socket_is_tls or allow_insecure_auth_without_tls)
+            self._api.login(user, password, send_plain_password)
         except (ApiError, ApiUnrecoverableError) as exc:
             raise ClientError('could not login') from exc
 
