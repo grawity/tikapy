@@ -81,21 +81,19 @@ class ApiRos:
                               "=name=%s" % username,
                               "=password=%s" % password])[0]
 
-        if "ret" not in attrs:
-            return
+        if "ret" in attrs:
+            # Prepare response for challenge-response login
+            # response is MD5 of 0-char + plaintext-password + challange
+            response = hashlib.md5()
+            response.update(b'\x00')
+            response.update(password.encode('UTF-8'))
+            response.update(binascii.unhexlify((attrs['ret']).encode('UTF-8')))
+            response = "00" + binascii.hexlify(response.digest()).decode('UTF-8')
 
-        # Prepare response for challenge-response login
-        # response is MD5 of 0-char + plaintext-password + challange
-        response = hashlib.md5()
-        response.update(b'\x00')
-        response.update(password.encode('UTF-8'))
-        response.update(binascii.unhexlify((attrs['ret']).encode('UTF-8')))
-        response = "00" + binascii.hexlify(response.digest()).decode('UTF-8')
-
-        # send response & login request
-        self.talk(["/login",
-                   "=name=%s" % username,
-                   "=response=%s" % response])
+            # send response & login request
+            self.talk(["/login",
+                       "=name=%s" % username,
+                       "=response=%s" % response])
 
     def talk(self, words):
         """
