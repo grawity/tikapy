@@ -66,10 +66,23 @@ class ApiRos:
             password - Password used to login
         """
 
+        # RouterOS <= 6.43rc17 uses MD5 challenge-response:
+        #   --> /login{}
+        #   <-- {ret}
+        #   --> /login{name, response}
+        #   <-- {}
+        #
+        # RouterOS >= 6.43rc19 uses plaintext authentication:
+        #   --> /login{name, password}
+        #   <-- {}
+
         # request login
-        # Mikrotik answers with a challenge in the 'ret' attribute
-        # 'ret' attribute accessible as attrs['ret']
-        _, attrs = self.talk(["/login"])[0]
+        _, attrs = self.talk(["/login",
+                              "=name=%s" % username,
+                              "=password=%s" % password])[0]
+
+        if "ret" not in attrs:
+            return
 
         # Prepare response for challenge-response login
         # response is MD5 of 0-char + plaintext-password + challange
